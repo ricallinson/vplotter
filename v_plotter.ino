@@ -1,67 +1,25 @@
 /*
  * Kritzelbot
  *
- * motor
- * QSH4218-35-10-027
- *          Voltage = 5.3V
- *    Phase current = 1.0A
- * Phase resistance = 5 Ohm
- *        Full step = 1.8
- * red, blue, green, black
- *
- * 37.5 rot/m quarter step (1ms delay)
- *
- * LED_PIN2 --- 14
- * LED_PIN1 --- 10
- * DIR2     --- 9
- * STEP2    --- 8
- * DIR1     --- 7
- * STEP1    --- 6
- * SERVO    --- 5
- * MS3      --- 4
- * ENABLE   --- 3
- * MS1      --- 2 
- *
- *     TRI   SPA
- * A - BLK - RED
- * C - GRN - GRN
- * B - RED - YEL(BLK)
- * D - BLU - BLU
- *
- * Pololu - Mot(Tri) - Mot(Spa) - Mot(Pololu/1200)
- *     2B - BLK      - RED      - RED
- *     2A - BRN/GRN  - GRN      - BLU
- *     1A - BLU      - BLU      - GRN
- *     1B - RED      - BLK      - BLK
- *
- *
- *
- * MS1  | MS3  | 
- * -----+------+--------
- * LOW  | LOW  | quarter
- * HIGH | LOW  | eighth
- * HIGH | HIGH | sixteenth
- *
  */
- 
-#include <Servo.h>
+
 #include <AFMotor.h>
 #include <stdlib.h>
 
-// distance between both motors (axis) 150 cm
-#define AXIS_DISTANCE_X 512
-#define AXIS_DISTANCE_Y 512
+// distance between both motors (axis) 51 cm
+#define AXIS_DISTANCE_X 5120
+#define AXIS_DISTANCE_Y 5120
 
 // starting position
 // a = b = 10607 --> 1060.7mm
 // m2s = 0.7853982
 
-#define START_X 256
-#define START_Y 256
-#define MIN_X 200
-#define MAX_X 1000
-#define MIN_Y 200
-#define MAX_Y 1000
+#define START_X 2560
+#define START_Y 1000
+#define MIN_X 1160
+#define MAX_X 3720
+#define MIN_Y 0
+#define MAX_Y 3000
 
 // pulley radius 8mm
 #define PULLEY_R 80
@@ -71,59 +29,19 @@
 // 200 steps per rotation
 #define STEPS_PER_ROT 200
 
-// pen states
-#define PEN_UP 0
-#define PEN_DOWN 1
-#define PEN_UP_POS 55
-#define PEN_DOWN_POS 90
-// delay to wait for the pen to go up or down
-#define PEN_DELAY 1000
-
-// default speed
-#define PAUSE_DELAY 1
-
-// possible commands
-#define CMD_NONE 0
-#define CMD_LINE_A 1
-#define CMD_MOVE_A 2
-#define CMD_LINE_R 3
-#define CMD_MOVE_R 4
-#define CMD_HELLO 5
-#define CMD_END  6
-
 // command chars
-#define CMD_CHAR_LINE_A 'L'
-#define CMD_CHAR_LINE_R 'l'
-#define CMD_CHAR_MOVE_A 'M'
-#define CMD_CHAR_MOVE_R 'm'
-#define CMD_CHAR_OFF 'o'
-#define CMD_CHAR_ON 'O'
-
-// pin defines
-//#define MS1_PIN 2 // quarter step PIN
-//#define ENABLE_PIN 3 // something to do with using stepper motors
-//#define MS3_PIN 4 // quarter step PIN
-#define SERVO_PIN 5
-
-//#define STEP_PIN_M1 6 // stepper motor 1
-//#define DIR_PIN_M1 7  // stepper motor 1 direction
-//#define STEP_PIN_M2 8 // stepper motor 2
-//#define DIR_PIN_M2 9 // stepper motor 2 direction
-
-//#define LED_PIN1 10
-//#define LED_PIN2 14
+#define CMD_CHAR_LINE_A 'L' // draw an absolute line
+#define CMD_CHAR_LINE_R 'l' // move an absolute line
+#define CMD_CHAR_MOVE_A 'M' // draw a reletive line
+#define CMD_CHAR_MOVE_R 'm' // move a reletive line
+#define CMD_CHAR_MOVE_H 'h' // move to home
 
 #define MAX_BUFFER_SIZE 50
 
 float m2s;
-Servo servo;
 
-// RIC:
-AF_Stepper M1(STEPS_PER_ROT, 1);
-AF_Stepper M2(STEPS_PER_ROT, 2);
-
-int DIR_M1 = FORWARD;
-int DIR_M2 = FORWARD;
+AF_Stepper M1(STEPS_PER_ROT, 2); // left
+AF_Stepper M2(STEPS_PER_ROT, 1); // right
 
 long currentX = 0;
 long currentY = 0;
@@ -131,7 +49,6 @@ long stepsM1 = 0;
 long stepsM2 = 0;
 long targetM1 = 0;
 long targetM2 = 0;
-byte penState = PEN_UP;
 
 char line[MAX_BUFFER_SIZE];
 
@@ -142,11 +59,6 @@ typedef struct {
   long targetM1;
   long targetM2;
 } command;
-
-#define MAX_COMMANDS 10
-command cmdBuffer[MAX_COMMANDS];
-byte readPtr = 0;
-byte writePtr = 0;
 
 
 void setup() {
@@ -167,41 +79,10 @@ void setup() {
   stepsM2 = computeB(START_X, START_Y) / m2s;
   targetM1 = stepsM1;
   targetM2 = stepsM2;
-  Serial.print("#start steps: "); Serial.print(stepsM1); Serial.print(" "); Serial.println(stepsM2);
-
-//  pinMode(MS1_PIN, OUTPUT);
-//  pinMode(MS3_PIN, OUTPUT);
-//  pinMode(ENABLE_PIN, OUTPUT);
-
-//  pinMode(DIR_PIN_M1, OUTPUT);
-//  pinMode(STEP_PIN_M1, OUTPUT);
-//  pinMode(DIR_PIN_M2, OUTPUT);
-//  pinMode(STEP_PIN_M2, OUTPUT);
-
-//  pinMode(LED_PIN1, OUTPUT);
-//  pinMode(LED_PIN2, OUTPUT);
-
-//  digitalWrite(DIR_PIN_M2, LOW);
-//  digitalWrite(ENABLE_PIN, LOW);
-  // set motors to quarter stepping
-//  digitalWrite(MS1_PIN, LOW);
-//  digitalWrite(MS3_PIN, LOW);
+  Serial.print("pos: x = "); Serial.print(currentX); Serial.print(", y = "); Serial.println(currentY);
   
-  // RIC:
-  M1.setSpeed(10); // 10 rpm
-  M2.setSpeed(10); // 10 rpm
-  
-  // move pen up
-  servo.attach(SERVO_PIN);
-  penState = PEN_UP;
-  servo.write(PEN_UP_POS);
-  delay(500);
-
-  // 16 MHz / 8 = 2 MHz (prescaler 8)
-  // 2MHz / 256 = 7812.5 Hz
-  TCCR2A = 0;           // normal operation                                                  
-  TCCR2B = (1<<CS21);   // prescaler 8                                                       
-  TIMSK2 = (1<<TOIE2);  // enable overflow interrupt                                         
+  M1.setSpeed(50); // 50 rpm
+  M2.setSpeed(50); // 50 rpm                                   
 
   while (Serial.available()) {
     Serial.read();
@@ -209,24 +90,6 @@ void setup() {
   Serial.println("OK");
 }
 
-
-// driver states 
-#define D_STATE_IDLE 0 
-#define D_STATE_PULSE 1
-#define D_STATE_PULSE_DOWN 2
-#define D_STATE_PAUSE 3
-#define D_STATE_WAIT_SERVO 4
-
-// motor directions
-#define DIR_UP 1
-#define DIR_DOWN 0
-
-byte preScaler = 0;
-byte newReadPtr;
-word idleCount = 0;
-word servoDelay = 0;
-byte driverState = D_STATE_IDLE;
-byte pause_count = 1;
 int dsM1 = 0;
 int dsM2 = 0;
 int dM1 = 0;
@@ -234,15 +97,7 @@ int dM2 = 0;
 int err = 0;
 int e2 = 0;
 
-
-
-
-
-
-
-
-
-byte execCmd(char cmd, long x, long y, long tM1, long tM2) {
+void execCmd(char cmd, long x, long y, long tM1, long tM2) {
 
   int dirM1, dirM2;
   
@@ -254,11 +109,7 @@ byte execCmd(char cmd, long x, long y, long tM1, long tM2) {
   dsM1 = (tM1 > stepsM1) ? +1 : -1;
   dsM2 = (tM2 > stepsM2) ? +1 : -1;
   dirM1 = (tM1 > stepsM1) ? FORWARD : BACKWARD;
-//Serial.print("DIR_M1 = "); Serial.println(DIR_M1);
-//digitalWrite(DIR_PIN_M1, (tM1 > stepsM1) ? DIR_UP : DIR_DOWN);
-  dirM2 = (tM2 > stepsM2) ? BACKWARD : FORWARD;
-//Serial.print("DIR_M2 = "); Serial.println(DIR_M2);
-//digitalWrite(DIR_PIN_M2, (tM2 > stepsM2) ? DIR_DOWN : DIR_UP);
+  dirM2 = (tM2 > stepsM2) ? FORWARD : BACKWARD;
   targetM1 = tM1;
   targetM2 = tM2;
 
@@ -267,175 +118,14 @@ byte execCmd(char cmd, long x, long y, long tM1, long tM2) {
     e2 = err * 2;
     if (e2 > -dM2) {
       err = err - dM2;
-//      digitalWrite(STEP_PIN_M1, HIGH);
-      M1.step(1, dirM1, MICROSTEP);
+      M1.step(1, dirM1, MICROSTEP); // SINGLE, DOUBLE, INTERLEAVE, MICROSTEP
       stepsM1 += dsM1;
     }
     if (e2 < dM1) {
       err = err + dM1;
       M2.step(1, dirM2, MICROSTEP);
-//      digitalWrite(STEP_PIN_M2, HIGH);
       stepsM2 += dsM2;
     }
-    
-  }
-
-  Serial.println("OK");
-  return 0;
-}
-
-
-
-/*
- * Timer overflow service routine
- */
-ISR(TIMER2_OVF_vect) {
-return;
-  long tM1, tM2;
-  byte cmd;
-
-  preScaler++;
-  if (preScaler < 4) {
-    return;
-  }
-  preScaler = 0;
-
-  switch (driverState) {
-  case D_STATE_IDLE:
-    if (writePtr != readPtr) {
-      idleCount = 0;
-//    digitalWrite(ENABLE_PIN, LOW);
-//    digitalWrite(LED_PIN1, HIGH);
-      newReadPtr = (readPtr + 1) % MAX_COMMANDS;
-      // read the actual command 
-      cmd = cmdBuffer[newReadPtr].cmd;
-      if ((cmd != CMD_CHAR_ON) && (cmd != CMD_CHAR_OFF)) {
-	tM1 = cmdBuffer[newReadPtr].targetM1;
-	tM2 = cmdBuffer[newReadPtr].targetM2;
-	// compute deltas
-	dM1 = abs(tM1 - stepsM1);
-	dM2 = abs(tM2 - stepsM2);
-	err = dM1 - dM2;
-	// set directions
-	dsM1 = (tM1 > stepsM1) ? +1 : -1;
-	dsM2 = (tM2 > stepsM2) ? +1 : -1;
-        DIR_M1 = (tM1 > stepsM1) ? FORWARD : BACKWARD;
-//Serial.print("DIR_M1 = "); Serial.println(DIR_M1);
-//	digitalWrite(DIR_PIN_M1, (tM1 > stepsM1) ? DIR_UP : DIR_DOWN);
-        DIR_M2 = (tM2 > stepsM2) ? BACKWARD : FORWARD;
-//Serial.print("DIR_M2 = "); Serial.println(DIR_M2);
-//	digitalWrite(DIR_PIN_M2, (tM2 > stepsM2) ? DIR_DOWN : DIR_UP);
-	targetM1 = tM1;
-	targetM2 = tM2;
-	// go to pulsing/stepping state ...
-	driverState = D_STATE_PULSE;
-      }
-      // ... but move the pen up or down before, if needed
-      switch (cmd) {
-      case CMD_CHAR_ON:
-//	digitalWrite(LED_PIN1, HIGH);
-//      digitalWrite(ENABLE_PIN, LOW);
-	readPtr = newReadPtr;
-	break;
-      case CMD_CHAR_OFF:
-//	digitalWrite(LED_PIN1, LOW);
-//      digitalWrite(ENABLE_PIN, HIGH);
-	readPtr = newReadPtr;
-	break;
-      case CMD_CHAR_MOVE_A:
-      case CMD_CHAR_MOVE_R:
-	if (penState == PEN_DOWN) {
-	  penState = PEN_UP;
-	  servo.write(PEN_UP_POS);
-	  driverState = D_STATE_WAIT_SERVO;
-	}
-	break;
-      case CMD_CHAR_LINE_A:
-      case CMD_CHAR_LINE_R:
-	if (penState == PEN_UP) {
-	  penState = PEN_DOWN;
-	  servo.write(PEN_DOWN_POS);
-	  driverState = D_STATE_WAIT_SERVO;
-	}
-	break;
-      }
-      /*
-      Serial.print("state: ");
-      Serial.println(driverState, DEC);
-      Serial.print("target: ");
-      Serial.print(targetM1);
-      Serial.print(", ");
-      Serial.print(targetM2);
-      Serial.print(", delta: ");
-      Serial.print(dsM1);
-      Serial.print(", ");
-      Serial.println(dsM2);
-      */
-    }
-    else {
-      /*
-      idleCount++;
-      if (idleCount == 10000) {
-	// disable the motors if not in use
-        digitalWrite(LED_PIN1, LOW);
-        digitalWrite(ENABLE_PIN, HIGH);
-      }
-      */
-    }
-    break;
-  case D_STATE_WAIT_SERVO:
-    if (servoDelay++ >= PEN_DELAY) {
-      driverState = D_STATE_PULSE;
-      servoDelay = 0;
-    }
-    break;
-  case D_STATE_PULSE:
-    e2 = err * 2;
-    if (e2 > -dM2) {
-      err = err - dM2;
-//      digitalWrite(STEP_PIN_M1, HIGH);
-//      M1.step(1, DIR_M1, MICROSTEP);
-      stepsM1 += dsM1;
-    }
-    if (e2 < dM1) {
-      err = err + dM1;
-//      M2.step(1, DIR_M2, MICROSTEP);
-//      digitalWrite(STEP_PIN_M2, HIGH);
-      stepsM2 += dsM2;
-    }
-
-    Serial.print("steps: ");
-    Serial.print(stepsM1);
-    Serial.print(", ");
-    Serial.print(stepsM2);
-    Serial.print(", ");
-    Serial.print(targetM1);
-    Serial.print(", ");
-    Serial.println(targetM2);
-
-    pause_count = 0;
-    driverState = D_STATE_PULSE_DOWN;
-    break;
-  case D_STATE_PULSE_DOWN:
-//    digitalWrite(STEP_PIN_M1, LOW);
-//    digitalWrite(STEP_PIN_M2, LOW);
-    if ((stepsM1 == targetM1) && (stepsM2 == targetM2)) {
-      driverState = D_STATE_IDLE;
-      // signal that we have consumed the command by advancing the read pointer
-      readPtr = newReadPtr;
-    }
-    else if (pause_count < PAUSE_DELAY) {
-      driverState = D_STATE_PAUSE;
-    }
-    else {
-      driverState = D_STATE_PULSE;
-    }
-    break;
-  case D_STATE_PAUSE:
-    if (++pause_count >= PAUSE_DELAY) {
-      driverState = D_STATE_PULSE;
-    }
-    break;
   }
 }
 
@@ -471,17 +161,6 @@ byte parseLine(char *line) {
   long a, b;
   char buf[10];
 
-//  digitalWrite(LED_PIN2, HIGH);
-
-  // wait until there is space for this command
-  do {
-    newWritePtr = (writePtr+1) % MAX_COMMANDS;
-    if (newWritePtr == readPtr) {
-      delay(1000);
-      Serial.println("#waiting ...");
-    }
-  } while (newWritePtr == readPtr);
-
   switch (line[0]) {
   case 'm':
   case 'l':
@@ -507,6 +186,11 @@ byte parseLine(char *line) {
     tx = currentX;
     ty = currentY;
     break;
+  case 'h':
+    tcmd = line[0];
+    tx = START_X;
+    ty = START_Y;
+    break;
   default:
     Serial.print("#unknown command: ");
     Serial.println(line[0]);
@@ -531,19 +215,9 @@ byte parseLine(char *line) {
 
   currentX = tx;
   currentY = ty;
-//  cmdBuffer[newWritePtr].x = tx;
-//  cmdBuffer[newWritePtr].y = ty;
-//  cmdBuffer[newWritePtr].cmd = tcmd;
-//  cmdBuffer[newWritePtr].targetM1 = a / m2s;  // convert to steps for motor 1
-//  cmdBuffer[newWritePtr].targetM2 = b / m2s;  // convert to steps for motor 2
-
-  // advance the write ptr
-//  writePtr = newWritePtr;
 
   execCmd(tcmd, tx, ty, a / m2s, b / m2s);
 
-//  digitalWrite(LED_PIN2, LOW);
-  Serial.println("OK");
   return 0;
 }
 
