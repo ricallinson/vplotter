@@ -15,14 +15,14 @@
 // m2s = 0.7853982
 
 #define START_X 2560
-#define START_Y 1000
-#define MIN_X 1160
-#define MAX_X 3720
+#define START_Y 0
+#define MIN_X 1860
+#define MAX_X 3260
 #define MIN_Y 0
-#define MAX_Y 3000
+#define MAX_Y 2500
 
-// pulley radius 8mm
-#define PULLEY_R 80
+// pulley radius 4mm
+#define PULLEY_R 40
 #define PI 3.14159
 // circumference 2*PI*r = 50.2 mm
 
@@ -70,7 +70,7 @@ void setup() {
   Serial.println("#start up");
 
   // compute mm to steps
-  m2s = (2 * PI * PULLEY_R) / STEPS_PER_ROT; 
+  m2s = (2 * PI * PULLEY_R) / STEPS_PER_ROT;
 
   // compute starting pos
   currentX = START_X;
@@ -109,7 +109,7 @@ void execCmd(char cmd, long x, long y, long tM1, long tM2) {
   dsM1 = (tM1 > stepsM1) ? +1 : -1;
   dsM2 = (tM2 > stepsM2) ? +1 : -1;
   dirM1 = (tM1 > stepsM1) ? FORWARD : BACKWARD;
-  dirM2 = (tM2 > stepsM2) ? FORWARD : BACKWARD;
+  dirM2 = (tM2 > stepsM2) ? BACKWARD : FORWARD;
   targetM1 = tM1;
   targetM2 = tM2;
 
