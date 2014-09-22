@@ -15,14 +15,14 @@
 // m2s = 0.7853982
 
 #define START_X 2560
-#define START_Y 0
-#define MIN_X 1860
-#define MAX_X 3260
-#define MIN_Y 0
-#define MAX_Y 2500
+#define START_Y 2000
+#define MIN_X 1500
+#define MAX_X 4100
+#define MIN_Y 1500
+#define MAX_Y 4500
 
 // pulley radius 4mm
-#define PULLEY_R 40
+#define PULLEY_R 44
 #define PI 3.14159
 // circumference 2*PI*r = 50.2 mm
 
@@ -118,12 +118,12 @@ void execCmd(char cmd, long x, long y, long tM1, long tM2) {
     e2 = err * 2;
     if (e2 > -dM2) {
       err = err - dM2;
-      M1.step(1, dirM1, MICROSTEP); // SINGLE, DOUBLE, INTERLEAVE, MICROSTEP
+      M1.step(1, dirM1, SINGLE); // SINGLE, DOUBLE, INTERLEAVE, MICROSTEP
       stepsM1 += dsM1;
     }
     if (e2 < dM1) {
       err = err + dM1;
-      M2.step(1, dirM2, MICROSTEP);
+      M2.step(1, dirM2, SINGLE);
       stepsM2 += dsM2;
     }
   }
