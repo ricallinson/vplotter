@@ -18,7 +18,7 @@
 #define START_Y 2000
 #define MIN_X 1500
 #define MAX_X 4100
-#define MIN_Y 1500
+#define MIN_Y 2000
 #define MAX_Y 4500
 
 // pulley radius 4mm
