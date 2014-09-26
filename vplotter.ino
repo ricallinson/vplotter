@@ -67,7 +67,7 @@ void setup() {
     ; // If there is no serial do nothing.
   }
   Serial.begin(57600);
-  Serial.println("#start up");
+  Serial.println("#startup");
 
   // compute mm to steps
   m2s = (2 * PI * PULLEY_R) / STEPS_PER_ROT;
@@ -79,7 +79,7 @@ void setup() {
   stepsM2 = computeB(START_X, START_Y) / m2s;
   targetM1 = stepsM1;
   targetM2 = stepsM2;
-  Serial.print("pos: x = "); Serial.print(currentX); Serial.print(", y = "); Serial.println(currentY);
+  Serial.print("#cmd h, x:"); Serial.print(currentX); Serial.print(", y:"); Serial.println(currentY);
   
   M1.setSpeed(50); // 50 rpm
   M2.setSpeed(50); // 50 rpm                                   
@@ -127,6 +127,8 @@ void execCmd(char cmd, long x, long y, long tM1, long tM2) {
       stepsM2 += dsM2;
     }
   }
+  
+  Serial.println("OK");
 }
 
 int computeA(long x, long y) {
