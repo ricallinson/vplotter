@@ -22,7 +22,7 @@
 #define MAX_Y 4500
 
 // pulley radius 5mm
-#define PULLEY_R 50
+#define PULLEY_R 50 // This should be set via a command
 #define PI 3.14159
 // circumference 2*PI*r = 50.2 mm
 
