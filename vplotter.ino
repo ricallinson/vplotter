@@ -21,8 +21,8 @@
 #define MIN_Y 2000
 #define MAX_Y 4500
 
-// pulley radius 4mm
-#define PULLEY_R 44
+// pulley radius 5mm
+#define PULLEY_R 50
 #define PI 3.14159
 // circumference 2*PI*r = 50.2 mm
 
@@ -81,8 +81,8 @@ void setup() {
   targetM2 = stepsM2;
   Serial.print("#cmd h, x:"); Serial.print(currentX); Serial.print(", y:"); Serial.println(currentY);
   
-  M1.setSpeed(50); // 50 rpm
-  M2.setSpeed(50); // 50 rpm                                   
+  M1.setSpeed(20); // 20 rpm - Any faster an the steps seem to get out of sync
+  M2.setSpeed(20); // 20 rpm                                   
 
   while (Serial.available()) {
     Serial.read();
