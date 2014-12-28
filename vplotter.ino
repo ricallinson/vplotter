@@ -20,20 +20,20 @@
 
 // Fixed constants
 #define MAX_BUFFER_SIZE 50
-#define PI 3.14159 // circumference 2*PI*r = 50.2 mm
+#define PI 3.14159 // Circumference 2*PI*r = 50.2 mm
 
 // Command chars
-#define CMD_CHAR_LINE_A 'L' // draw an absolute line
-#define CMD_CHAR_LINE_R 'l' // move an absolute line
-#define CMD_CHAR_MOVE_A 'M' // draw a relative line
-#define CMD_CHAR_MOVE_R 'm' // move a relative line
-#define CMD_CHAR_MOVE_H 'h' // move to home
+#define CMD_CHAR_LINE_A 'L' // Draw an absolute line
+#define CMD_CHAR_LINE_R 'l' // Move an absolute line
+#define CMD_CHAR_MOVE_A 'M' // Draw a relative line
+#define CMD_CHAR_MOVE_R 'm' // Move a relative line
+#define CMD_CHAR_MOVE_H 'h' // Move to home
 
-AF_Stepper M1(STEPS_PER_ROT, 2); // left
-AF_Stepper M2(STEPS_PER_ROT, 1); // right
+AF_Stepper M1(STEPS_PER_ROT, 2); // Left
+AF_Stepper M2(STEPS_PER_ROT, 1); // Right
 
 // Computed constants
-float m2s; // mm to steps
+float m2s = (2 * PI * PULLEY_R) / STEPS_PER_ROT; // Compute mm to steps
 char line[MAX_BUFFER_SIZE];
 
 // Computed globals
@@ -42,10 +42,6 @@ long currentY = 0;
 long stepsM1 = 0;
 long stepsM2 = 0;
 
-// Not sure why these are out side of moveTo() function?
-long targetM1 = 0;
-long targetM2 = 0;
-
 void setup() {
 
   while (!Serial) {
@@ -53,9 +49,6 @@ void setup() {
   }
   Serial.begin(57600);
   Serial.println("#startup");
-
-  // Compute mm to steps
-  m2s = (2 * PI * PULLEY_R) / STEPS_PER_ROT;
 
   // Compute starting position
   currentX = START_X;
@@ -74,10 +67,10 @@ void setup() {
   Serial.println("OK");
 }
 
-// Why are this not in the moveTo() function?
-
 void moveTo(long x, long y, long tM1, long tM2) {
 
+  long targetM1 = 0;
+  long targetM2 = 0;
   int dirM1, dirM2;
   int dsM1 = 0;
   int dsM2 = 0;
@@ -86,11 +79,11 @@ void moveTo(long x, long y, long tM1, long tM2) {
   int err = 0;
   int e2 = 0;
 
-  // compute deltas
+  // Compute deltas
   dM1 = abs(tM1 - stepsM1);
   dM2 = abs(tM2 - stepsM2);
   err = dM1 - dM2;
-  // set directions
+  // Set directions
   dsM1 = (tM1 > stepsM1) ? +1 : -1;
   dsM2 = (tM2 > stepsM2) ? +1 : -1;
   dirM1 = (tM1 > stepsM1) ? FORWARD : BACKWARD;
@@ -141,7 +134,6 @@ char *readToken(char *str, char *buf, char delimiter) {
 
 byte parseLine(char *line) {
 
-  byte newWritePtr;
   char tcmd;
   long tx = 0, ty = 0;
   long a, b;
@@ -176,9 +168,9 @@ byte parseLine(char *line) {
   }
 
   if (tcmd != CMD_CHAR_LINE_A || tcmd != CMD_CHAR_LINE_R) {
-    // Lift the pen.
+    // Lift the pen
   } else {
-    // Put pen to paper.
+    // Put pen to paper
   }
 
   if (tx < MIN_X) tx = MIN_X;
