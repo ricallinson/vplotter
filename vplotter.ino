@@ -53,8 +53,8 @@ void setup() {
   // Compute starting position
   currentX = START_X;
   currentY = START_Y;
-  stepsM1 = computeA(START_X, START_Y) / m2s;
-  stepsM2 = computeB(START_X, START_Y) / m2s;
+  stepsM1 = computeLeftPosition(START_X, START_Y) / m2s;
+  stepsM2 = computeRightPosition(START_X, START_Y) / m2s;
 
   Serial.print("#cmd h, x:"); Serial.print(currentX); Serial.print(", y:"); Serial.println(currentY);
   
@@ -108,11 +108,11 @@ void moveTo(long x, long y, long tM1, long tM2) {
   Serial.println("OK");
 }
 
-int computeA(long x, long y) {
+int computeLeftPosition(long x, long y) {
   return sqrt(x * x + y * y);
 }
   
-int computeB(long x, long y) {
+int computeRightPosition(long x, long y) {
   long distanceX = AXIS_DISTANCE_XY - x;
   return sqrt((distanceX * distanceX) + y * y);
 }
@@ -186,8 +186,8 @@ byte parseLine(char *line) {
   Serial.println(ty);
 
   // Compute a and b from x and y
-  a = computeA(tx, ty);
-  b = computeB(tx, ty);
+  a = computeLeftPosition(tx, ty);
+  b = computeRightPosition(tx, ty);
 
   currentX = tx;
   currentY = ty;
