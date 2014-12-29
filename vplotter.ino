@@ -5,6 +5,7 @@
  */
 
 #include <AFMotor.h>
+#include <Servo.h>
 #include <stdlib.h>
 
 // All these should be set via a configuration command
@@ -31,6 +32,7 @@
 
 AF_Stepper M1(STEPS_PER_ROT, 2); // Left
 AF_Stepper M2(STEPS_PER_ROT, 1); // Right
+Servo PEN; // Pen lifter
 
 // Computed constants
 float m2s = (2 * PI * PULLEY_R) / STEPS_PER_ROT; // Compute mm to steps
@@ -59,7 +61,10 @@ void setup() {
   Serial.print("#cmd h, x:"); Serial.print(currentX); Serial.print(", y:"); Serial.println(currentY);
   
   M1.setSpeed(20); // 20 rpm - Any faster an the steps seem to get out of sync
-  M2.setSpeed(20); // 20 rpm                                   
+  M2.setSpeed(20); // 20 rpm
+
+  PEN.attach(10);
+  liftPen();
 
   while (Serial.available()) {
     Serial.read();
@@ -132,6 +137,18 @@ char *readToken(char *str, char *buf, char delimiter) {
   return str;
 }
 
+void liftPen() {
+  // PEN.attach(10);
+  PEN.write(0);
+  // PEN.detach();
+}
+
+void dropPen() {
+  // PEN.attach(10);
+  PEN.write(90);
+  // PEN.detach();
+}
+
 byte parseLine(char *line) {
 
   char tcmd;
@@ -167,10 +184,10 @@ byte parseLine(char *line) {
     return 1;
   }
 
-  if (tcmd != CMD_CHAR_LINE_A || tcmd != CMD_CHAR_LINE_R) {
-    // Lift the pen
+  if (tcmd != CMD_CHAR_LINE_A && tcmd != CMD_CHAR_LINE_R) {
+    liftPen();
   } else {
-    // Put pen to paper
+    dropPen();
   }
 
   if (tx < MIN_X) tx = MIN_X;
