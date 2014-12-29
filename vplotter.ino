@@ -25,8 +25,8 @@
 
 // Command chars
 #define CMD_CHAR_LINE_A 'L' // Draw an absolute line
-#define CMD_CHAR_LINE_R 'l' // Move an absolute line
-#define CMD_CHAR_MOVE_A 'M' // Draw a relative line
+#define CMD_CHAR_LINE_R 'l' // Draw a relative line
+#define CMD_CHAR_MOVE_A 'M' // Move an absolute line
 #define CMD_CHAR_MOVE_R 'm' // Move a relative line
 #define CMD_CHAR_MOVE_H 'h' // Move to home
 
@@ -184,10 +184,10 @@ byte parseLine(char *line) {
     return 1;
   }
 
-  if (tcmd != CMD_CHAR_LINE_A && tcmd != CMD_CHAR_LINE_R) {
-    liftPen();
-  } else {
+  if (tcmd == CMD_CHAR_LINE_A || tcmd == CMD_CHAR_LINE_R) {
     dropPen();
+  } else {
+    liftPen();
   }
 
   if (tx < MIN_X) tx = MIN_X;
