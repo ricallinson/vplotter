@@ -209,7 +209,6 @@ byte parseLine(char *line) {
   currentX = tx;
   currentY = ty;
 
-  // Command [mMlLoOh], Target X, Target Y, ?, ? 
   moveTo(tx, ty, a / m2s, b / m2s);
 
   return 0;
