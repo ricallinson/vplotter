@@ -138,15 +138,11 @@ char *readToken(char *str, char *buf, char delimiter) {
 }
 
 void liftPen() {
-  // PEN.attach(10);
   PEN.write(0);
-  // PEN.detach();
 }
 
 void dropPen() {
-  // PEN.attach(10);
   PEN.write(90);
-  // PEN.detach();
 }
 
 byte parseLine(char *line) {
