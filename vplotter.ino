@@ -138,7 +138,7 @@ char *readToken(char *str, char *buf, char delimiter) {
 }
 
 void liftPen() {
-  PEN.write(0);
+  PEN.write(10);
 }
 
 void dropPen() {
