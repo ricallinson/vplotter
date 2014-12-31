@@ -8,17 +8,6 @@
 #include <Servo.h>
 #include <stdlib.h>
 
-// All these should be set via a configuration command
-#define AXIS_DISTANCE_XY 5120 // Distance between the center of both motors 51.2 cm
-#define START_X 2560 // 25.6 cm
-#define START_Y 2000 // 20 cm
-#define MIN_X 1500 // 15 cm
-#define MAX_X 4100 // 41 cm
-#define MIN_Y 2000 // 20 cm
-#define MAX_Y 4500 // 45 cm
-#define PULLEY_R 50 // Pulley radius 5 mm
-#define STEPS_PER_ROT 200 // 200 steps per rotation
-
 // Fixed constants
 #define MAX_BUFFER_SIZE 50
 #define PI 3.14159 // Circumference 2*PI*r = 50.2 mm
@@ -30,12 +19,33 @@
 #define CMD_CHAR_MOVE_R 'm' // Move a relative line
 #define CMD_CHAR_MOVE_H 'h' // Move to home
 
+#define CMD_AXIS_DISTANCE_XY '0'
+#define CMD_START_X '1'
+#define CMD_START_Y '2'
+#define CMD_MIN_X '3'
+#define CMD_MAX_X '4'
+#define CMD_MIN_Y '5'
+#define CMD_MAX_Y '6'
+#define CMD_PULLEY_R '7'
+#define CMD_STEPS_PER_ROT '8'
+
+// Defaults for all configurable values
+int AXIS_DISTANCE_XY = 5120; // Distance between the center of both motors 51.2 cm
+int START_X = 2560; // 25.6 cm
+int START_Y = 2000; // 20 cm
+int MIN_X = 1500; // 15 cm
+int MAX_X = 4100; // 41 cm
+int MIN_Y = 2000; // 20 cm
+int MAX_Y = 4500; // 45 cm
+int PULLEY_R = 50; // Pulley radius 5 mm
+int STEPS_PER_ROT = 200; // 200 steps per rotation
+
 AF_Stepper M1(STEPS_PER_ROT, 2); // Left
 AF_Stepper M2(STEPS_PER_ROT, 1); // Right
 Servo PEN; // Pen lifter
 
 // Computed constants
-float m2s = (2 * PI * PULLEY_R) / STEPS_PER_ROT; // Compute mm to steps
+float m2s = 0.0;
 char line[MAX_BUFFER_SIZE];
 
 // Computed globals
@@ -52,13 +62,9 @@ void setup() {
     Serial.begin(57600);
     Serial.println("#startup");
 
-    // Compute starting position
-    currentX = START_X;
-    currentY = START_Y;
-    stepsM1 = computeLeftPosition(START_X, START_Y) / m2s;
-    stepsM2 = computeRightPosition(START_X, START_Y) / m2s;
+    setSteps();
 
-    Serial.print("#cmd h, x:"); Serial.print(currentX); Serial.print(", y:"); Serial.println(currentY);
+    Serial.print("#cmd: h, x:"); Serial.print(currentX); Serial.print(", y:"); Serial.println(currentY);
     
     M1.setSpeed(20); // 20 rpm - Any faster an the steps seem to get out of sync
     M2.setSpeed(20); // 20 rpm
@@ -70,6 +76,20 @@ void setup() {
         Serial.read();
     }
     Serial.println("OK");
+}
+
+// Compute mm to steps
+void setMmToSteps() {
+    m2s = (2 * PI * PULLEY_R) / STEPS_PER_ROT;
+}
+
+// 
+void setSteps() {
+    setMmToSteps();
+    currentX = START_X;
+    currentY = START_Y;
+    stepsM1 = computeLeftPosition(START_X, START_Y) / m2s;
+    stepsM2 = computeRightPosition(START_X, START_Y) / m2s;
 }
 
 void moveTo(long x, long y, long tM1, long tM2) {
@@ -113,6 +133,14 @@ void moveTo(long x, long y, long tM1, long tM2) {
     Serial.println("OK");
 }
 
+void liftPen() {
+    PEN.write(10);
+}
+
+void dropPen() {
+    PEN.write(90);
+}
+
 int computeLeftPosition(long x, long y) {
     return sqrt(x * x + y * y);
 }
@@ -120,6 +148,12 @@ int computeLeftPosition(long x, long y) {
 int computeRightPosition(long x, long y) {
     long distanceX = AXIS_DISTANCE_XY - x;
     return sqrt((distanceX * distanceX) + y * y);
+}
+
+int readInt(char *line) {
+    char buf[10];
+    line = readToken(line, buf, ' ');
+    return atol(buf);
 }
 
 char *readToken(char *str, char *buf, char delimiter) {
@@ -135,14 +169,6 @@ char *readToken(char *str, char *buf, char delimiter) {
     }
     *buf = '\0';
     return str;
-}
-
-void liftPen() {
-    PEN.write(10);
-}
-
-void dropPen() {
-    PEN.write(90);
 }
 
 byte parseLine(char *line) {
@@ -174,6 +200,65 @@ byte parseLine(char *line) {
         tx = START_X;
         ty = START_Y;
         break;
+    case CMD_AXIS_DISTANCE_XY:
+        AXIS_DISTANCE_XY = readInt(line);
+        setSteps();
+        Serial.print("#cmd: 0, v:");
+        Serial.println(AXIS_DISTANCE_XY);
+        Serial.println("OK");
+        return 0;
+    case CMD_START_X:
+        START_X = readInt(line);
+        setSteps();
+        Serial.print("#cmd: 1, v:");
+        Serial.println(START_X);
+        Serial.println("OK");
+        return 0;
+    case CMD_START_Y:
+        START_Y = readInt(line);
+        setSteps();
+        Serial.print("#cmd: 2, v:");
+        Serial.println(START_Y);
+        Serial.println("OK");
+        return 0;
+    case CMD_MIN_X:
+        MIN_X = readInt(line);
+        Serial.print("#cmd: 3, v:");
+        Serial.println(MIN_X);
+        Serial.println("OK");
+        return 0;
+    case CMD_MAX_X:
+        MAX_X = readInt(line);
+        Serial.print("#cmd: 4, v:");
+        Serial.println(MAX_X);
+        Serial.println("OK");
+        return 0;
+    case CMD_MIN_Y:
+        MIN_Y = readInt(line);
+        Serial.print("#cmd: 5, v:");
+        Serial.println(AXIS_DISTANCE_XY);
+        Serial.println("OK");
+        return 0;
+    case CMD_MAX_Y:
+        MAX_Y = readInt(line);
+        Serial.print("#cmd: 6, v:");
+        Serial.println(MAX_Y);
+        Serial.println("OK");
+        return 0;
+    case CMD_PULLEY_R:
+        PULLEY_R = readInt(line);
+        setSteps();
+        Serial.print("#cmd: 7, v:");
+        Serial.println(PULLEY_R);
+        Serial.println("OK");
+        return 0;
+    case CMD_STEPS_PER_ROT:
+        STEPS_PER_ROT = readInt(line);
+        setSteps();
+        Serial.print("#cmd: 8, v:");
+        Serial.println(STEPS_PER_ROT);
+        Serial.println("OK");
+        return 0;
     default:
         Serial.print("#unknown command: ");
         Serial.println(line[0]);
