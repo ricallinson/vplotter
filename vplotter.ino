@@ -30,15 +30,15 @@
 #define CMD_STEPS_PER_ROT '8'
 
 // Defaults for all configurable values
-int AXIS_DISTANCE_XY = 5120; // Distance between the center of both motors 51.2 cm
-int START_X = 2560; // 25.6 cm
-int START_Y = 2000; // 20 cm
-int MIN_X = 1500; // 15 cm
-int MAX_X = 4100; // 41 cm
-int MIN_Y = 2000; // 20 cm
-int MAX_Y = 4500; // 45 cm
-int PULLEY_R = 50; // Pulley radius 5 mm
-int STEPS_PER_ROT = 200; // 200 steps per rotation
+long AXIS_DISTANCE_XY = 5120; // Distance between the center of both motors 51.2 cm
+long START_X = 2560; // 25.6 cm
+long START_Y = 2000; // 20 cm
+long MIN_X = 1500; // 15 cm
+long MAX_X = 4100; // 41 cm
+long MIN_Y = 2000; // 20 cm
+long MAX_Y = 4500; // 45 cm
+long PULLEY_R = 50; // Pulley radius 5 mm
+long STEPS_PER_ROT = 200; // 200 steps per rotation
 
 AF_Stepper M1(STEPS_PER_ROT, 2); // Left
 AF_Stepper M2(STEPS_PER_ROT, 1); // Right
@@ -63,8 +63,6 @@ void setup() {
     Serial.println("#startup");
 
     setSteps();
-
-    Serial.print("#cmd: h, x:"); Serial.print(currentX); Serial.print(", y:"); Serial.println(currentY);
     
     M1.setSpeed(20); // 20 rpm - Any faster an the steps seem to get out of sync
     M2.setSpeed(20); // 20 rpm
@@ -96,13 +94,13 @@ void moveTo(long x, long y, long tM1, long tM2) {
 
     long targetM1 = 0;
     long targetM2 = 0;
-    int dirM1, dirM2;
-    int dsM1 = 0;
-    int dsM2 = 0;
-    int dM1 = 0;
-    int dM2 = 0;
-    int err = 0;
-    int e2 = 0;
+    long dirM1, dirM2;
+    long dsM1 = 0;
+    long dsM2 = 0;
+    long dM1 = 0;
+    long dM2 = 0;
+    long err = 0;
+    long e2 = 0;
 
     // Compute deltas
     dM1 = abs(tM1 - stepsM1);
@@ -141,16 +139,16 @@ void dropPen() {
     PEN.write(90);
 }
 
-int computeLeftPosition(long x, long y) {
+long computeLeftPosition(long x, long y) {
     return sqrt(x * x + y * y);
 }
   
-int computeRightPosition(long x, long y) {
+long computeRightPosition(long x, long y) {
     long distanceX = AXIS_DISTANCE_XY - x;
     return sqrt((distanceX * distanceX) + y * y);
 }
 
-int readInt(char *line) {
+long readInt(char *line) {
     char buf[10];
     line = readToken(line, buf, ' ');
     return atol(buf);
